@@ -1,0 +1,385 @@
+{
+  "info": {
+    "name": "Husher API (local mock)",
+    "description": "Every endpoint is served by the mock backend in src/server.js — no database, no upstream calls. Order statuses advance on their own over ~65s, so you can poll a status endpoint and watch pending -> confirming -> exchanging -> completed.\n\nCollection variables:\n- baseUrl: http://localhost:3000\n- apiKey: any non-empty string (sent as x-api-key on every request)\n\nReset all in-memory state with 'Mock control > POST _mock/reset'.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "apiKey", "value": "demo-key" }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "key", "value": "x-api-key" },
+      { "key": "value", "value": "{{apiKey}}" },
+      { "key": "in", "value": "header" }
+    ]
+  },
+  "item": [
+    {
+      "name": "Exchange",
+      "item": [
+        {
+          "name": "GET rate",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/husher/rate?sendToken=USDT&receiveToken=BNB&amountType=send&sendAmount=100&sendNetwork=BSC&receiveNetwork=BSC&provider=floating",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "husher", "rate"],
+              "query": [
+                { "key": "sendToken", "value": "USDT" },
+                { "key": "receiveToken", "value": "BNB" },
+                { "key": "amountType", "value": "send" },
+                { "key": "sendAmount", "value": "100" },
+                { "key": "receiveAmount", "value": "", "disabled": true },
+                { "key": "sendNetwork", "value": "BSC" },
+                { "key": "receiveNetwork", "value": "BSC" },
+                { "key": "provider", "value": "floating" },
+                { "key": "markup", "value": "", "disabled": true },
+                { "key": "externalUserId", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET currencies",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/husher/currencies",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "husher", "currencies"]
+            }
+          }
+        },
+        {
+          "name": "POST create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"send\": \"USDT\",\n  \"sendNetwork\": \"BSC\",\n  \"receive\": \"BNB\",\n  \"receiveNetwork\": \"BSC\",\n  \"amount\": 100,\n  \"receiveAddress\": \"0xYourAddressHere\",\n  \"ipAddress\": \"203.45.67.89\",\n  \"externalUserId\": \"user_001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/husher/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "husher", "create"]
+            }
+          }
+        },
+        {
+          "name": "GET status/{transactionId}",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/husher/status/kX9mP2nQ",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "husher", "status", "kX9mP2nQ"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Multi Exchange",
+      "item": [
+        {
+          "name": "POST multi-exchange/rate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sendToken\": \"USDT\",\n  \"sendNetwork\": \"BSC\",\n  \"totalAmount\": 100,\n  \"receiveNetwork\": \"BSC\",\n  \"receiveToken\": \"BNB\",\n  \"externalUserId\": \"user123\",\n  \"markup\": 0.4,\n  \"recipients\": [\n    { \"percent\": 100, \"provider\": \"husher\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/multi-exchange/rate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "multi-exchange", "rate"]
+            }
+          }
+        },
+        {
+          "name": "POST multi-exchange",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"send\": \"USDT\",\n  \"receive\": \"BNB\",\n  \"totalAmount\": 100,\n  \"sendNetwork\": \"BSC\",\n  \"receiveNetwork\": \"BSC\",\n  \"recipients\": [\n    { \"address\": \"0xRecipientAddress\", \"percent\": 25, \"provider\": \"binance\", \"timeDelay\": 0 }\n  ],\n  \"ipAddress\": \"198.51.100.23\",\n  \"externalUserId\": \"user_001\",\n  \"markup\": 0.4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/multi-exchange",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "multi-exchange"]
+            }
+          }
+        },
+        {
+          "name": "GET multi-exchange/{multiExchangeOrderId}",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/multi-exchange/507f1f77bcf86cd799439011",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "multi-exchange", "507f1f77bcf86cd799439011"]
+            }
+          }
+        },
+        {
+          "name": "POST multi-exchange/recipient/{recipientId}/execute-instantly",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/multi-exchange/recipient/rec_id_1/execute-instantly",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "multi-exchange", "recipient", "rec_id_1", "execute-instantly"]
+            }
+          }
+        },
+        {
+          "name": "GET multi-exchange/providers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/multi-exchange/providers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "multi-exchange", "providers"]
+            }
+          }
+        },
+        {
+          "name": "GET multi-exchange/minimum-withdrawals",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/multi-exchange/minimum-withdrawals?token=USDT&network=BSC",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "multi-exchange", "minimum-withdrawals"],
+              "query": [
+                { "key": "token", "value": "USDT" },
+                { "key": "network", "value": "BSC" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Private Exchange",
+      "item": [
+        {
+          "name": "POST exchange/private/create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"send\": \"USDT\",\n  \"sendNetwork\": \"BSC\",\n  \"receive\": \"ETH\",\n  \"receiveNetwork\": \"ETH\",\n  \"amount\": 100,\n  \"receiveAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0\",\n  \"ipAddress\": \"1.2.3.4\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/exchange/private/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "exchange", "private", "create"]
+            }
+          }
+        },
+        {
+          "name": "GET exchange/private/order/{orderId}",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/exchange/private/order/abc12xyz",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "exchange", "private", "order", "abc12xyz"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Orders",
+      "item": [
+        {
+          "name": "GET user/api-key-orders/external-user/{externalUserId}",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/api-key-orders/external-user/user_001?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "api-key-orders", "external-user", "user_001"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "External Users",
+      "item": [
+        {
+          "name": "POST api-key/external-users",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"externalUserId\": \"user_001\",\n  \"feePercentage\": 0,\n  \"description\": \"test user\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/api-key/external-users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "api-key", "external-users"]
+            }
+          }
+        },
+        {
+          "name": "GET api-key/external-users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/api-key/external-users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "api-key", "external-users"]
+            }
+          }
+        },
+        {
+          "name": "GET api-key/external-users/{externalUserId}",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/api-key/external-users/1234_test",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "api-key", "external-users", "1234_test"]
+            }
+          }
+        },
+        {
+          "name": "PATCH api-key/external-users/{externalUserId}",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"feePercentage\": 2,\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/api-key/external-users/1234_test",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "api-key", "external-users", "1234_test"]
+            }
+          }
+        },
+        {
+          "name": "DELETE api-key/external-users/{externalUserId}",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/api-key/external-users/1234_test",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "api-key", "external-users", "1234_test"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Batch Order",
+      "item": [
+        {
+          "name": "POST batch-order/create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"addressCount\": 5,\n  \"sendToken\": \"USDT\",\n  \"sendNetwork\": \"TRX\",\n  \"receiveToken\": \"ETH\",\n  \"receiveNetwork\": \"ETH\",\n  \"receiveAddress\": \"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"externalUserId\": \"partner_user_abc123\",\n  \"autoProcess\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/batch-order/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "batch-order", "create"]
+            }
+          }
+        },
+        {
+          "name": "GET batch-order/{orderId}",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/batch-order/BATCHabc1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "batch-order", "BATCHabc1"]
+            }
+          }
+        },
+        {
+          "name": "POST batch-order/{orderId}/add-addresses",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"addressCount\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/batch-order/BATCHabc1/add-addresses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "batch-order", "BATCHabc1", "add-addresses"]
+            }
+          }
+        },
+        {
+          "name": "POST batch-order/{orderId}/execute",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/batch-order/BATCHabc1/execute",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "batch-order", "BATCHabc1", "execute"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mock control",
+      "item": [
+        {
+          "name": "POST _mock/reset",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/_mock/reset",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "_mock", "reset"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

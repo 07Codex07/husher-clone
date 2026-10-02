@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Husher API Tester</title>
+<script>
+  // Shared fetch helper — always writes status/body (or error) into the output <pre>
+  async function apiCall(outId, url, options = {}) {
+    const outEl = document.getElementById(outId);
+    outEl.textContent = 'Loading...';
+    try {
+      const res = await fetch(url, options);
+      const text = await res.text();
+      let pretty = text;
+      try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch (_) {}
+      outEl.textContent = res.status + '\n' + pretty;
+    } catch (err) {
+      outEl.textContent =
+        'Request failed: ' + err.message +
+        '\n\nTip: run "npm run dev" in the Husher folder and keep Base URL as http://localhost:3000';
+    }
+  }
+</script>
+</head>
+<body>
+
+<h1>Husher API Tester</h1>
+
+<p style="background:#fff3cd;padding:10px;border:1px solid #ffc107;">
+  <strong>How to run:</strong> In a terminal, <code>cd</code> into this folder and run
+  <code>npm run dev</code>, then open
+  <a href="http://localhost:3000/">http://localhost:3000/</a>.
+  This talks to the local mock backend (<code>src/server.js</code>) — no internet needed.
+  The API key can be any non-empty text.
+</p>
+
+<p>
+  Base URL: <input id="baseUrl" value="http://localhost:3000" size="40"><br>
+  API Key (x-api-key): <input id="apiKey" size="40" placeholder="paste your key here">
+</p>
+
+<hr>
+
+<h2>Exchange</h2>
+
+<h3>GET /api/v1/husher/rate</h3>
+sendToken: <input id="rateSendToken" value="USDT">
+receiveToken: <input id="rateReceiveToken" value="BNB"><br>
+amountType:
+<select id="rateAmountType">
+  <option value="send">send</option>
+  <option value="receive">receive</option>
+</select><br>
+sendAmount (used when amountType=send): <input id="rateSendAmount" value="100"><br>
+receiveAmount (used when amountType=receive): <input id="rateReceiveAmount" value=""><br>
+sendNetwork: <input id="rateSendNetwork" value="BSC">
+receiveNetwork: <input id="rateReceiveNetwork" value="BSC"><br>
+provider:
+<select id="rateProvider">
+  <option value="floating">floating</option>
+  <option value="fixed">fixed</option>
+  <option value="private">private</option>
+</select><br>
+markup: <input id="rateMarkup" value=""><br>
+externalUserId: <input id="rateExternalUserId" value=""><br>
+<button onclick="getRate()">Send</button>
+<pre id="out-rate"></pre>
+<script>
+  async function getRate() {
+    const params = new URLSearchParams();
+    params.append('sendToken', document.getElementById('rateSendToken').value);
+    params.append('receiveToken', document.getElementById('rateReceiveToken').value);
+
+    const amountType = document.getElementById('rateAmountType').value;
+    params.append('amountType', amountType);
+
+    if (amountType === 'send') {
+      params.append('sendAmount', document.getElementById('rateSendAmount').value);
+    } else {
+      params.append('receiveAmount', document.getElementById('rateReceiveAmount').value);
+    }
+
+    const sendNetwork = document.getElementById('rateSendNetwork').value;
+    if (sendNetwork) params.append('sendNetwork', sendNetwork);
+
+    const receiveNetwork = document.getElementById('rateReceiveNetwork').value;
+    if (receiveNetwork) params.append('receiveNetwork', receiveNetwork);
+
+    params.append('provider', document.getElementById('rateProvider').value);
+
+    const markup = document.getElementById('rateMarkup').value;
+    if (markup) params.append('markup', markup);
+
+    const externalUserId = document.getElementById('rateExternalUserId').value;
+    if (externalUserId) params.append('externalUserId', externalUserId);
+
+    const url = document.getElementById('baseUrl').value + '/api/v1/husher/rate?' + params.toString();
+    await apiCall('out-rate', url, {
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<h3>GET /api/v1/husher/currencies</h3>
+<button onclick="getCurrencies()">Send</button>
+<pre id="out-currencies"></pre>
+<script>
+  async function getCurrencies() {
+    const url = document.getElementById('baseUrl').value + '/api/v1/husher/currencies';
+    await apiCall('out-currencies', url, {
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<h3>POST /api/v1/husher/create</h3>
+<textarea id="body-create" rows="14" cols="60">{
+  "send": "USDT",
+  "sendNetwork": "BSC",
+  "receive": "BNB",
+  "receiveNetwork": "BSC",
+  "amount": 100,
+  "receiveAddress": "0xYourAddressHere",
+  "ipAddress": "203.45.67.89",
+  "externalUserId": "user_001"
+}</textarea><br>
+<button onclick="createExchange()">Send</button>
+<pre id="out-create"></pre>
+<script>
+  async function createExchange() {
+    const url = document.getElementById('baseUrl').value + '/api/v1/husher/create';
+    await apiCall('out-create', url, {
+      method: 'POST',
+      headers: {
+        'x-api-key': document.getElementById('apiKey').value,
+        'Content-Type': 'application/json'
+      },
+      body: document.getElementById('body-create').value
+    });
+  }
+</script>
+
+<h3>GET /api/v1/husher/status/{transactionId}</h3>
+transactionId: <input id="statusTxId" value="kX9mP2nQ"><br>
+<button onclick="getStatus()">Send</button>
+<pre id="out-status"></pre>
+<script>
+  async function getStatus() {
+    const txId = document.getElementById('statusTxId').value;
+    const url = `${document.getElementById('baseUrl').value}/api/v1/husher/status/${txId}`;
+    await apiCall('out-status', url, {
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<hr>
+
+<h2>Multi Exchange</h2>
+
+<h3>POST /api/v1/multi-exchange/rate</h3>
+<textarea id="body-multi-rate" rows="12" cols="60">{
+  "sendToken": "USDT",
+  "sendNetwork": "BSC",
+  "totalAmount": 100,
+  "receiveNetwork": "BSC",
+  "receiveToken": "BNB",
+  "externalUserId": "user123",
+  "markup": 0.4,
+  "recipients": [
+    { "percent": 100, "provider": "husher" }
+  ]
+}</textarea><br>
+<button onclick="getMultiRate()">Send</button>
+<pre id="out-multi-rate"></pre>
+<script>
+  async function getMultiRate() {
+    const url = document.getElementById('baseUrl').value + '/api/v1/multi-exchange/rate';
+    await apiCall('out-multi-rate', url, {
+      method: 'POST',
+      headers: {
+        'x-api-key': document.getElementById('apiKey').value,
+        'Content-Type': 'application/json'
+      },
+      body: document.getElementById('body-multi-rate').value
+    });
+  }
+</script>
+
+<h3>POST /api/v1/multi-exchange</h3>
+<textarea id="body-multi-create" rows="16" cols="60">{
+  "send": "USDT",
+  "receive": "BNB",
+  "totalAmount": 100,
+  "sendNetwork": "BSC",
+  "receiveNetwork": "BSC",
+  "recipients": [
+    { "address": "0xRecipientAddress", "percent": 25, "provider": "binance", "timeDelay": 0 }
+  ],
+  "ipAddress": "198.51.100.23",
+  "externalUserId": "user_001",
+  "markup": 0.4
+}</textarea><br>
+<button onclick="createMultiExchange()">Send</button>
+<pre id="out-multi-create"></pre>
+<script>
+  async function createMultiExchange() {
+    const url = document.getElementById('baseUrl').value + '/api/v1/multi-exchange';
+    await apiCall('out-multi-create', url, {
+      method: 'POST',
+      headers: {
+        'x-api-key': document.getElementById('apiKey').value,
+        'Content-Type': 'application/json'
+      },
+      body: document.getElementById('body-multi-create').value
+    });
+  }
+</script>
+
+<h3>GET /api/v1/multi-exchange/{multiExchangeOrderId}</h3>
+multiExchangeOrderId: <input id="multiOrderId" value="507f1f77bcf86cd799439011"><br>
+<button onclick="getMultiOrder()">Send</button>
+<pre id="out-multi-order"></pre>
+<script>
+  async function getMultiOrder() {
+    const orderId = document.getElementById('multiOrderId').value;
+    const url = `${document.getElementById('baseUrl').value}/api/v1/multi-exchange/${orderId}`;
+    await apiCall('out-multi-order', url, {
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<h3>POST /api/v1/multi-exchange/recipient/{recipientId}/execute-instantly</h3>
+recipientId: <input id="recipientId" value="rec_id_1"><br>
+<button onclick="executeInstantly()">Send</button>
+<pre id="out-execute-instantly"></pre>
+<script>
+  async function executeInstantly() {
+    const recipientId = document.getElementById('recipientId').value;
+    const url = `${document.getElementById('baseUrl').value}/api/v1/multi-exchange/recipient/${recipientId}/execute-instantly`;
+    await apiCall('out-execute-instantly', url, {
+      method: 'POST',
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<h3>GET /api/v1/multi-exchange/providers</h3>
+<button onclick="getProviders()">Send</button>
+<pre id="out-providers"></pre>
+<script>
+  async function getProviders() {
+    const url = document.getElementById('baseUrl').value + '/api/v1/multi-exchange/providers';
+    await apiCall('out-providers', url, {
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<h3>GET /api/v1/multi-exchange/minimum-withdrawals</h3>
+token: <input id="minToken" value="USDT">
+network: <input id="minNetwork" value="BSC"><br>
+<button onclick="getMinWithdrawals()">Send</button>
+<pre id="out-min-withdrawals"></pre>
+<script>
+  async function getMinWithdrawals() {
+    const token = document.getElementById('minToken').value;
+    const network = document.getElementById('minNetwork').value;
+    const url = `${document.getElementById('baseUrl').value}/api/v1/multi-exchange/minimum-withdrawals?token=${token}&network=${network}`;
+    await apiCall('out-min-withdrawals', url, {
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<hr>
+
+<h2>Private Exchange</h2>
+
+<h3>POST /api/v1/exchange/private/create</h3>
+<textarea id="body-private-create" rows="10" cols="60">{
+  "send": "USDT",
+  "sendNetwork": "BSC",
+  "receive": "ETH",
+  "receiveNetwork": "ETH",
+  "amount": 100,
+  "receiveAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
+  "ipAddress": "1.2.3.4"
+}</textarea><br>
+<button onclick="createPrivateExchange()">Send</button>
+<pre id="out-private-create"></pre>
+<script>
+  async function createPrivateExchange() {
+    const url = document.getElementById('baseUrl').value + '/api/v1/exchange/private/create';
+    await apiCall('out-private-create', url, {
+      method: 'POST',
+      headers: {
+        'x-api-key': document.getElementById('apiKey').value,
+        'Content-Type': 'application/json'
+      },
+      body: document.getElementById('body-private-create').value
+    });
+  }
+</script>
+
+<h3>GET /api/v1/exchange/private/order/{orderId}</h3>
+orderId: <input id="privateOrderId" value="abc12xyz"><br>
+<button onclick="getPrivateOrder()">Send</button>
+<pre id="out-private-order"></pre>
+<script>
+  async function getPrivateOrder() {
+    const orderId = document.getElementById('privateOrderId').value;
+    const url = `${document.getElementById('baseUrl').value}/api/v1/exchange/private/order/${orderId}`;
+    await apiCall('out-private-order', url, {
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<hr>
+
+<h2>User Orders</h2>
+
+<h3>GET /api/v1/user/api-key-orders/external-user/{externalUserId}</h3>
+externalUserId: <input id="userOrdersExtId" value="user_001">
+page: <input id="userOrdersPage" value="1" size="4">
+limit: <input id="userOrdersLimit" value="10" size="4"><br>
+<button onclick="getUserOrders()">Send</button>
+<pre id="out-user-orders"></pre>
+<script>
+  async function getUserOrders() {
+    const extId = document.getElementById('userOrdersExtId').value;
+    const page = document.getElementById('userOrdersPage').value;
+    const limit = document.getElementById('userOrdersLimit').value;
+    const url = `${document.getElementById('baseUrl').value}/api/v1/user/api-key-orders/external-user/${extId}?page=${page}&limit=${limit}`;
+    await apiCall('out-user-orders', url, {
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<hr>
+
+<h2>External Users</h2>
+
+<h3>POST /api/v1/api-key/external-users</h3>
+<textarea id="body-create-extuser" rows="5" cols="60">{
+  "externalUserId": "user_001",
+  "feePercentage": 0,
+  "description": "test user"
+}</textarea><br>
+<button onclick="createExternalUser()">Send</button>
+<pre id="out-create-extuser"></pre>
+<script>
+  async function createExternalUser() {
+    const url = document.getElementById('baseUrl').value + '/api/v1/api-key/external-users';
+    await apiCall('out-create-extuser', url, {
+      method: 'POST',
+      headers: {
+        'x-api-key': document.getElementById('apiKey').value,
+        'Content-Type': 'application/json'
+      },
+      body: document.getElementById('body-create-extuser').value
+    });
+  }
+</script>
+
+<h3>GET /api/v1/api-key/external-users</h3>
+<button onclick="getAllExternalUsers()">Send</button>
+<pre id="out-all-extusers"></pre>
+<script>
+  async function getAllExternalUsers() {
+    const url = document.getElementById('baseUrl').value + '/api/v1/api-key/external-users';
+    await apiCall('out-all-extusers', url, {
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<h3>GET /api/v1/api-key/external-users/{externalUserId}</h3>
+externalUserId: <input id="getExtUserId" value="1234_test"><br>
+<button onclick="getExternalUser()">Send</button>
+<pre id="out-get-extuser"></pre>
+<script>
+  async function getExternalUser() {
+    const extId = document.getElementById('getExtUserId').value;
+    const url = `${document.getElementById('baseUrl').value}/api/v1/api-key/external-users/${extId}`;
+    await apiCall('out-get-extuser', url, {
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<h3>PATCH /api/v1/api-key/external-users/{externalUserId}</h3>
+externalUserId: <input id="patchExtUserId" value="1234_test"><br>
+<textarea id="body-patch-extuser" rows="4" cols="60">{
+  "feePercentage": 2,
+  "description": "Updated description"
+}</textarea><br>
+<button onclick="updateExternalUser()">Send</button>
+<pre id="out-patch-extuser"></pre>
+<script>
+  async function updateExternalUser() {
+    const extId = document.getElementById('patchExtUserId').value;
+    const url = `${document.getElementById('baseUrl').value}/api/v1/api-key/external-users/${extId}`;
+    await apiCall('out-patch-extuser', url, {
+      method: 'PATCH',
+      headers: {
+        'x-api-key': document.getElementById('apiKey').value,
+        'Content-Type': 'application/json'
+      },
+      body: document.getElementById('body-patch-extuser').value
+    });
+  }
+</script>
+
+<h3>DELETE /api/v1/api-key/external-users/{externalUserId}</h3>
+externalUserId: <input id="deleteExtUserId" value="1234_test"><br>
+<button onclick="deleteExternalUser()">Send</button>
+<pre id="out-delete-extuser"></pre>
+<script>
+  async function deleteExternalUser() {
+    const extId = document.getElementById('deleteExtUserId').value;
+    const url = `${document.getElementById('baseUrl').value}/api/v1/api-key/external-users/${extId}`;
+    await apiCall('out-delete-extuser', url, {
+      method: 'DELETE',
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<hr>
+
+<h2>Batch Order</h2>
+
+<h3>POST /api/v1/batch-order/create</h3>
+<textarea id="body-batch-create" rows="12" cols="60">{
+  "addressCount": 5,
+  "sendToken": "USDT",
+  "sendNetwork": "TRX",
+  "receiveToken": "ETH",
+  "receiveNetwork": "ETH",
+  "receiveAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+  "ipAddress": "127.0.0.1",
+  "externalUserId": "partner_user_abc123",
+  "autoProcess": true
+}</textarea><br>
+<button onclick="createBatchOrder()">Send</button>
+<pre id="out-batch-create"></pre>
+<script>
+  async function createBatchOrder() {
+    const url = document.getElementById('baseUrl').value + '/api/v1/batch-order/create';
+    await apiCall('out-batch-create', url, {
+      method: 'POST',
+      headers: {
+        'x-api-key': document.getElementById('apiKey').value,
+        'Content-Type': 'application/json'
+      },
+      body: document.getElementById('body-batch-create').value
+    });
+  }
+</script>
+
+<h3>GET /api/v1/batch-order/{orderId}</h3>
+orderId: <input id="batchGetId" value="BATCHabc1"><br>
+<button onclick="getBatchOrder()">Send</button>
+<pre id="out-batch-get"></pre>
+<script>
+  async function getBatchOrder() {
+    const orderId = document.getElementById('batchGetId').value;
+    const url = `${document.getElementById('baseUrl').value}/api/v1/batch-order/${orderId}`;
+    await apiCall('out-batch-get', url, {
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+<h3>POST /api/v1/batch-order/{orderId}/add-addresses</h3>
+orderId: <input id="batchAddId" value="BATCHabc1"><br>
+<textarea id="body-batch-add" rows="3" cols="60">{
+  "addressCount": 3
+}</textarea><br>
+<button onclick="addBatchAddresses()">Send</button>
+<pre id="out-batch-add"></pre>
+<script>
+  async function addBatchAddresses() {
+    const orderId = document.getElementById('batchAddId').value;
+    const url = `${document.getElementById('baseUrl').value}/api/v1/batch-order/${orderId}/add-addresses`;
+    await apiCall('out-batch-add', url, {
+      method: 'POST',
+      headers: {
+        'x-api-key': document.getElementById('apiKey').value,
+        'Content-Type': 'application/json'
+      },
+      body: document.getElementById('body-batch-add').value
+    });
+  }
+</script>
+
+<h3>POST /api/v1/batch-order/{orderId}/execute</h3>
+orderId: <input id="batchExecId" value="BATCHabc1"><br>
+<button onclick="executeBatchOrder()">Send</button>
+<pre id="out-batch-exec"></pre>
+<script>
+  async function executeBatchOrder() {
+    const orderId = document.getElementById('batchExecId').value;
+    const url = `${document.getElementById('baseUrl').value}/api/v1/batch-order/${orderId}/execute`;
+    await apiCall('out-batch-exec', url, {
+      method: 'POST',
+      headers: { 'x-api-key': document.getElementById('apiKey').value }
+    });
+  }
+</script>
+
+</body>
+</html>
